@@ -1,16 +1,17 @@
 # main.py
 import threading
-import queue
 import uuid
-from loop2 import loop2
+from process_queries import loop2
 from groundlight import Groundlight
 from sink_queries import make_sink_queries
 from dotenv import load_dotenv
+import os
+import queue
 
 
 def setup_detector(unique: bool = True):
     """
-    If unique is True, then the detector returned is guaranteed to be unique.
+    If unique is True, then the detector returned is guaranteed to be unique, good for testing from scratch.
 
     returns a detector that can be used to detect a dirty sink
     """
@@ -23,7 +24,7 @@ def setup_detector(unique: bool = True):
     # create detectors
     dirty_sink_detector = gl.get_or_create_detector(
         name=name,
-        query="Is there at least one dish in the sink? Cleaning supplies like sponge, brush, soap, etc. are not considered dishes.",
+        query="Is there at least one dish in the sink? Cleaning supplies like sponge, brush, soap, etc. are not considered dishes. If you cannot see into the sink, consider it empty and answer NO.",
     )
 
     return dirty_sink_detector
@@ -32,7 +33,10 @@ def setup_detector(unique: bool = True):
 if __name__ == "__main__":
     load_dotenv()
 
-    dirty_sink_detector = setup_detector(unique=True)
+    if not os.getenv("GROUNDLIGHT_API_TOKEN"):
+        raise EnvironmentError("GROUNDLIGHT_API_TOKEN not set in .env file")
+
+    dirty_sink_detector = setup_detector(unique=False)
 
     sink_query_queue = queue.Queue()
 
@@ -40,6 +44,9 @@ if __name__ == "__main__":
         target=make_sink_queries, args=(sink_query_queue, dirty_sink_detector)
     )
     thread2 = threading.Thread(target=loop2, args=(sink_query_queue,))
+    # set threads as daemons to make sure they exit when the main thread exits
+    thread1.daemon = True
+    thread2.daemon = True
 
     thread1.start()
     thread2.start()

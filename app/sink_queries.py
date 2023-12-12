@@ -1,6 +1,6 @@
 # loop1.py
-import queue
 import os
+from queue import Queue
 import random
 from PIL import Image
 from groundlight import Groundlight
@@ -28,15 +28,25 @@ def get_sink_image() -> Image:
         chosen_sink = random.choice(dirty_sinks)
         path = os.path.join(dirty_sink_dir, chosen_sink)
 
-    return Image.open(path)
+    image = Image.open(path)
+    if image.mode in ["RGBA", "P"]:
+        image = image.convert("RGB")
+
+    return image
 
 
-def make_sink_queries(query_queue: queue.Queue, detector):
+def make_sink_queries(query_queue: Queue, detector):
+    """
+    This loop will produce queries asynchonously and puts them in the query_queue for later processing
+    """
     gl = Groundlight()
 
     while True:
-        image = get_sink_image()
-        query = gl.ask_async(detector=detector, image=image)
-        query_queue.put(query)
-        print(f"Produced: {query.id}")
-        time.sleep(2)
+        try:
+            image = get_sink_image()
+            query = gl.ask_async(detector=detector, image=image)
+            submit_time = time.time()
+            query_queue.put((query, submit_time))
+            print(f"Produced: {query.id} at {submit_time}")
+        except Exception as e:
+            print(f"Error: {e}")

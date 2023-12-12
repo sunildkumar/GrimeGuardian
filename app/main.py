@@ -1,4 +1,3 @@
-# main.py
 import threading
 import uuid
 from process_queries import loop2
@@ -7,6 +6,7 @@ from sink_queries import make_sink_queries
 from dotenv import load_dotenv
 import os
 import queue
+import yappi
 
 
 def setup_detector(unique: bool = True):
@@ -31,6 +31,12 @@ def setup_detector(unique: bool = True):
 
 
 if __name__ == "__main__":
+    # Set this to True to enable profiling and timeout
+    enable_profiling_and_timeout = True
+
+    if enable_profiling_and_timeout:
+        yappi.start(builtins=False)
+
     load_dotenv()
 
     if not os.getenv("GROUNDLIGHT_API_TOKEN"):
@@ -40,13 +46,43 @@ if __name__ == "__main__":
 
     sink_query_queue = queue.Queue()
 
+    stop_event = threading.Event()
+
     thread1 = threading.Thread(
-        target=make_sink_queries, args=(sink_query_queue, dirty_sink_detector)
+        target=make_sink_queries,
+        args=(sink_query_queue, dirty_sink_detector, stop_event),
     )
-    thread2 = threading.Thread(target=loop2, args=(sink_query_queue,))
+    thread2 = threading.Thread(
+        target=loop2, args=(sink_query_queue, dirty_sink_detector, stop_event)
+    )
     # set threads as daemons to make sure they exit when the main thread exits
     thread1.daemon = True
     thread2.daemon = True
+
+    if enable_profiling_and_timeout:
+        # Stop threads after timeout
+        def stop_threads():
+            try:
+                func_stats = yappi.get_func_stats()
+
+                func_stats.print_all(
+                    columns={
+                        # tells yappi to print name column wide enough to fit the long function names
+                        0: ("name", 200),
+                        1: ("ncall", 5),
+                        2: ("tsub", 8),
+                        3: ("ttot", 8),
+                        4: ("tavg", 8),
+                    }
+                )
+                yappi.stop()
+            except Exception as e:
+                print(f"Error: {e}")
+
+            stop_event.set()
+
+        timer = threading.Timer(5, stop_threads)
+        timer.start()
 
     thread1.start()
     thread2.start()

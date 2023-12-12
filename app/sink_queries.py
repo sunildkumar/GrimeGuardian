@@ -2,6 +2,7 @@
 import os
 from queue import Queue
 import random
+import threading
 from PIL import Image
 from groundlight import Groundlight
 import time
@@ -35,18 +36,17 @@ def get_sink_image() -> Image:
     return image
 
 
-def make_sink_queries(query_queue: Queue, detector):
+def make_sink_queries(query_queue: Queue, detector, stop_event: threading.Event):
     """
     This loop will produce queries asynchonously and puts them in the query_queue for later processing
     """
     gl = Groundlight()
 
-    while True:
+    while not stop_event.is_set():
         try:
             image = get_sink_image()
             query = gl.ask_async(detector=detector, image=image)
             submit_time = time.time()
             query_queue.put((query, submit_time))
-            print(f"Produced: {query.id} at {submit_time}")
         except Exception as e:
             print(f"Error: {e}")

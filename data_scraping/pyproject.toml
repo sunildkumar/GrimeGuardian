@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "data-scraping"
+version = "0.1.0"
+description = ""
+authors = ["Sunil Kumar <sdkumar@hmc.edu>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+icrawler = "^0.6.7"
+six = "^1.16.0"
+pillow = "^10.1.0"
+requests = "^2.31.0"
+bs4 = "^0.0.1"
+lxml = "^4.9.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

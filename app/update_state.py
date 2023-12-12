@@ -25,11 +25,21 @@ def update_sink_state(
                 while not answer_queue.empty():
                     answer, timestamp = answer_queue.get()
 
-                    if timestamp > state.get_state().sink_timestamp:
-                        state.update_state(answer.result.label, timestamp)
-
-                    notification_queue.put("HI")
-                    print('put "HI" in notification queue')
+                    # we only care about answers that are more recent than the last update to the state
+                    if timestamp > state.get_state().sink_state_timestamp:
+                        # if the answer is YES, then the sink is dirty and we only need to update the sink_state and sink_timestamp
+                        if answer.result.label == "YES":
+                            state.update_state(
+                                sink_state=answer.result.label,
+                                sink_state_timestamp=timestamp,
+                            )
+                        # if the answer is NO, then the sink is clean and we need to update the sink_state, sink_timestamp, and last_sink_clean_timestamp
+                        elif answer.result.label == "NO":
+                            state.update_state(
+                                sink_state=answer.result.label,
+                                sink_state_timestamp=timestamp,
+                                sink_clean_timestamp=timestamp,
+                            )
 
             except Exception as e:
                 print(f"Error: {e}")

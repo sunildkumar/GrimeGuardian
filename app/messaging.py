@@ -25,5 +25,6 @@ class DiscordBot(discord.Client):
             print("in loop for messaging")
             if not self.notification_queue.empty():
                 message = self.notification_queue.get()
-                await channel.send(message)
-            await asyncio.sleep(0.1)
+                fpath = "/Users/sunilkumar/Documents/GrimeGuardian/data_scraping/dirty_sink/000001.jpg"
+                await channel.send(message, file=discord.File(fpath))
+            await asyncio.sleep(5)

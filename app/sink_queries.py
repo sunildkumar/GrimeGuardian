@@ -13,8 +13,8 @@ def get_sink_image() -> Image:
     # TODO - replace with an image from a live feed when available
     """
 
-    clean_sink_dir = "data_scraping/clean_sink"
-    dirty_sink_dir = "data_scraping/dirty_sink"
+    clean_sink_dir = "../data_scraping/clean_sink"
+    dirty_sink_dir = "../data_scraping/dirty_sink"
 
     clean_sinks = os.listdir(clean_sink_dir)
     dirty_sinks = os.listdir(dirty_sink_dir)

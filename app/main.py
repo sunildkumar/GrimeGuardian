@@ -5,6 +5,7 @@ import uuid
 from loop2 import loop2
 from groundlight import Groundlight
 from sink_queries import make_sink_queries
+from dotenv import load_dotenv
 
 
 def setup_detector(unique: bool = True):
@@ -29,6 +30,8 @@ def setup_detector(unique: bool = True):
 
 
 if __name__ == "__main__":
+    load_dotenv()
+
     dirty_sink_detector = setup_detector(unique=True)
 
     sink_query_queue = queue.Queue()

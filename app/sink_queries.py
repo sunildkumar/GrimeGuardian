@@ -1,11 +1,11 @@
 # loop1.py
+from datetime import datetime
 import os
 from queue import Queue
 import random
 import threading
 from PIL import Image
 from groundlight import Groundlight
-import time
 
 
 def get_sink_image() -> Image:
@@ -46,7 +46,7 @@ def make_sink_queries(query_queue: Queue, detector, stop_event: threading.Event)
         try:
             image = get_sink_image()
             query = gl.ask_async(detector=detector, image=image)
-            submit_time = time.time()
+            submit_time = datetime.now()
             query_queue.put((query, submit_time))
         except Exception as e:
             print(f"Error: {e}")

@@ -10,7 +10,7 @@ python = "^3.11"
 groundlight = "^0.13.1"
 python-dotenv = "^1.0.0"
 yappi = "^1.6.0"
-
+certifi = ">=2023.7.22"
 
 [build-system]
 requires = ["poetry-core"]

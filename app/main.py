@@ -1,6 +1,8 @@
 import threading
 import uuid
-from process_queries import loop2
+from update_state import update_sink_state
+from thread_safe_state import ThreadSafeState
+from process_queries import process_query_queue
 from groundlight import Groundlight
 from sink_queries import make_sink_queries
 from dotenv import load_dotenv
@@ -32,7 +34,7 @@ def setup_detector(unique: bool = True):
 
 if __name__ == "__main__":
     # Set this to True to enable profiling and timeout
-    enable_profiling_and_timeout = True
+    enable_profiling_and_timeout = False
 
     if enable_profiling_and_timeout:
         yappi.start(builtins=False)
@@ -44,7 +46,10 @@ if __name__ == "__main__":
 
     dirty_sink_detector = setup_detector(unique=False)
 
+    # define threadsafe things we need
     sink_query_queue = queue.Queue()
+    sink_answer_queue = queue.Queue()
+    state = ThreadSafeState()
 
     stop_event = threading.Event()
 
@@ -53,11 +58,16 @@ if __name__ == "__main__":
         args=(sink_query_queue, dirty_sink_detector, stop_event),
     )
     thread2 = threading.Thread(
-        target=loop2, args=(sink_query_queue, dirty_sink_detector, stop_event)
+        target=process_query_queue,
+        args=(sink_query_queue, sink_answer_queue, dirty_sink_detector, stop_event),
+    )
+    thread3 = threading.Thread(
+        target=update_sink_state, args=(state, sink_answer_queue, stop_event)
     )
     # set threads as daemons to make sure they exit when the main thread exits
     thread1.daemon = True
     thread2.daemon = True
+    thread3.daemon = True
 
     if enable_profiling_and_timeout:
         # Stop threads after timeout
@@ -86,8 +96,10 @@ if __name__ == "__main__":
 
     thread1.start()
     thread2.start()
+    thread3.start()
 
     thread1.join()
     thread2.join()
+    thread3.join()
 
     print("All loops are complete")

@@ -1,3 +1,4 @@
+import datetime
 import threading
 from groundlight import Groundlight
 from groundlight.client import Detector
@@ -25,9 +26,10 @@ def process_queries(query_storage, gl, detector):
     return answer_indexes
 
 
-def remove_answered_queries(query_storage, answer_indexes):
+def remove_answered_queries(query_storage, answer_queue, answer_indexes):
     for i in reversed(answer_indexes):
-        query, time_submitted = query_storage.pop(i)
+        answer = query_storage.pop(i)
+        answer_queue.put(answer)
     return len(answer_indexes)
 
 
@@ -35,36 +37,44 @@ def remove_expired_queries(query_storage):
     expired_queries = 0
     new_query_storage = []
     for i in range(len(query_storage)):
-        if time.time() - query_storage[i][1] <= 10:
+        if (datetime.datetime.now() - query_storage[i][1]).total_seconds() <= 10:
             new_query_storage.append(query_storage[i])
         else:
             expired_queries += 1
     return new_query_storage, expired_queries
 
 
-def loop2(query_queue, detector: Detector, stop_event: threading.Event):
+def process_query_queue(
+    query_queue, answer_queue, detector: Detector, stop_event: threading.Event
+):
     query_storage = []
     gl = Groundlight()
     total_queries = 0
     total_answered = 0
     total_expired = 0
     while not stop_event.is_set():
-        try:
-            while not query_queue.empty():
-                query, time_submitted = query_queue.get(timeout=0)
-                query_storage.append((query, time_submitted))
-                total_queries += 1
+        # only process queries if there are any, check every 3 seconds
+        if query_queue.empty():
+            time.sleep(3)
+            continue
+        else:
+            try:
+                while not query_queue.empty():
+                    query, time_submitted = query_queue.get(timeout=0)
+                    query_storage.append((query, time_submitted))
+                    total_queries += 1
 
-            answer_indexes = process_queries(query_storage, gl, detector)
-            total_answered += remove_answered_queries(query_storage, answer_indexes)
-            query_storage, expired = remove_expired_queries(query_storage)
-            total_expired += expired
+                answer_indexes = process_queries(query_storage, gl, detector)
+                total_answered += remove_answered_queries(
+                    query_storage, answer_queue, answer_indexes
+                )
+                query_storage, expired = remove_expired_queries(query_storage)
+                total_expired += expired
 
-        except Exception as e:
-            print(f"Error: {e}")
-            raise e
+            except Exception as e:
+                print(f"Error: {e}")
+                raise e
 
-        print(
-            f"Total queries: {total_queries}, Total answered: {total_answered}, Total expired: {total_expired}"
-        )
-        time.sleep(1.0)
+            print(
+                f"Total queries: {total_queries}, Total answered: {total_answered}, Total expired: {total_expired}, Total in answer queue: {answer_queue.qsize()}"
+            )

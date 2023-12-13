@@ -8,7 +8,6 @@ from thread_safe_state import ThreadSafeState
 def update_sink_state(
     state: ThreadSafeState,
     answer_queue: Queue,
-    notification_queue: Queue,
     stop_event: threading.Event,
 ):
     """
@@ -38,7 +37,7 @@ def update_sink_state(
                             state.update_state(
                                 sink_state=answer.result.label,
                                 sink_state_timestamp=timestamp,
-                                sink_clean_timestamp=timestamp,
+                                last_sink_clean_timestamp=timestamp,
                             )
 
             except Exception as e:

@@ -1,3 +1,4 @@
+from publish_notifications import publish_notifications
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -59,24 +60,31 @@ if __name__ == "__main__":
     )
     thread3 = threading.Thread(
         target=update_sink_state,
-        args=(state, sink_answer_queue, notification_queue, stop_event),
+        args=(state, sink_answer_queue, stop_event),
+    )
+    thread4 = threading.Thread(
+        target=publish_notifications,
+        args=(state, notification_queue, stop_event),
     )
 
     bot = DiscordBot(notification_queue, stop_event)
-    thread4 = threading.Thread(target=bot.run, args=(os.getenv("BOT_TOKEN"),))
-    thread4.start()
+    thread5 = threading.Thread(target=bot.run, args=(os.getenv("BOT_TOKEN"),))
 
     # set threads as daemons to make sure they exit when the main thread exits
     thread1.daemon = True
     thread2.daemon = True
     thread3.daemon = True
+    thread4.daemon = True
+    thread5.daemon = True
 
     thread1.start()
     thread2.start()
     thread3.start()
+    thread4.start()
+    thread5.start()
 
     thread1.join()
     thread2.join()
     thread3.join()
-
-    print("All loops are complete")
+    thread4.join()
+    thread4.join()

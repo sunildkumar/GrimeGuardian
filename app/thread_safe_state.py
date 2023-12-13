@@ -26,15 +26,15 @@ class ThreadSafeState:
         *,
         sink_state: str | None = None,
         sink_state_timestamp: datetime | None = None,
-        sink_clean_timestamp: datetime | None = None
+        last_sink_clean_timestamp: datetime | None = None
     ):
         with self.lock:
             if sink_state is not None:
                 self.state.sink_state = sink_state
             if sink_state_timestamp is not None:
                 self.state.sink_state_timestamp = sink_state_timestamp
-            if sink_clean_timestamp is not None:
-                self.state.sink_clean_timestamp = sink_clean_timestamp
+            if last_sink_clean_timestamp is not None:
+                self.state.last_sink_clean_timestamp = last_sink_clean_timestamp
 
     def get_state(self) -> StateModel:
         with self.lock:

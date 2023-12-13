@@ -2,12 +2,15 @@ from queue import Queue
 import threading
 import time
 
+from constants import DIRTY_SINK_NAME, OCCUPIED_KITCHEN_NAME
 from thread_safe_state import ThreadSafeState
+from groundlight.client import Detector
 
 
-def update_sink_state(
+def update_state(
     state: ThreadSafeState,
     answer_queue: Queue,
+    detectors: list[Detector],
     stop_event: threading.Event,
 ):
     """
@@ -24,8 +27,21 @@ def update_sink_state(
                 while not answer_queue.empty():
                     answer, timestamp = answer_queue.get()
 
+                    # determine which detector the answer came from
+                    detector = None
+                    for d in detectors:
+                        if d.id == answer.detector_id:
+                            detector = d
+                            break
+                    if detector is None:
+                        raise ValueError(
+                            f"Could not find detector with id {answer.detector_id}"
+                        )
                     # we only care about answers that are more recent than the last update to the state
-                    if timestamp > state.get_state().sink_state_timestamp:
+                    if (
+                        DIRTY_SINK_NAME in detector.name
+                        and timestamp > state.get_state().sink_state_timestamp
+                    ):
                         # if the answer is YES, then the sink is dirty
                         if answer.result.label == "YES":
                             state.update_state(
@@ -41,6 +57,16 @@ def update_sink_state(
                                 last_sink_clean_timestamp=timestamp,
                                 sink_state_iq_id=answer.id,
                             )
+                    elif (
+                        OCCUPIED_KITCHEN_NAME in detector.name
+                        and timestamp > state.get_state().kitchen_state_timestamp
+                    ):
+                        # we update the state of the kitchen uniformly, regardless of the answer
+                        state.update_state(
+                            kitchen_state=answer.result.label,
+                            kitchen_state_timestamp=timestamp,
+                            kitchen_state_iq_id=answer.id,
+                        )
 
             except Exception as e:
                 print(f"Error: {e}")

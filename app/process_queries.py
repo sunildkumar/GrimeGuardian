@@ -6,10 +6,21 @@ from groundlight.binary_labels import Label
 import time
 
 
-def process_queries(query_storage, gl, detector):
+def process_queries(query_storage, gl, detectors: list[Detector]):
     answer_indexes = []
     for i in range(len(query_storage)):
         query, time_submitted = query_storage[i]
+
+        # choose the detector that matches query.detector_id
+        detector = None
+        for d in detectors:
+            if d.id == query.detector_id:
+                detector = d
+                break
+
+        if detector is None:
+            raise ValueError(f"Could not find detector with id {query.detector_id}")
+
         if (
             query.result
             and query.result.label in [Label.YES, Label.NO]
@@ -45,7 +56,7 @@ def remove_expired_queries(query_storage):
 
 
 def process_query_queue(
-    query_queue, answer_queue, detector: Detector, stop_event: threading.Event
+    query_queue, answer_queue, detectors: list[Detector], stop_event: threading.Event
 ):
     query_storage = []
     gl = Groundlight()
@@ -64,7 +75,7 @@ def process_query_queue(
                     query_storage.append((query, time_submitted))
                     total_queries += 1
 
-                answer_indexes = process_queries(query_storage, gl, detector)
+                answer_indexes = process_queries(query_storage, gl, detectors)
                 total_answered += remove_answered_queries(
                     query_storage, answer_queue, answer_indexes
                 )
@@ -75,6 +86,6 @@ def process_query_queue(
                 print(f"Error: {e}")
                 raise e
 
-            print(
-                f"Total queries: {total_queries}, Total answered: {total_answered}, Total expired: {total_expired}, Total in answer queue: {answer_queue.qsize()}"
-            )
+            # print(
+            #     f"Total queries: {total_queries}, Total answered: {total_answered}, Total expired: {total_expired}"
+            # )

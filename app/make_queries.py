@@ -36,6 +36,33 @@ def get_sink_image() -> Image:
     return image
 
 
+def get_kitchen_image() -> Image:
+    """
+    returns an image of a kitchen
+    # TODO - replace with an image from a live feed when available
+    """
+
+    empty_kitchen_dir = "../data_scraping/empty_kitchen"
+    nonempty_kitchen_dir = "../data_scraping/nonempty_kitchen"
+
+    empty_kitchens = os.listdir(empty_kitchen_dir)
+    nonempty_kitchens = os.listdir(nonempty_kitchen_dir)
+
+    kitchen_type = random.choice(["empty", "nonempty"])
+
+    if kitchen_type == "empty":
+        chosen_kitchen = random.choice(empty_kitchens)
+        path = os.path.join(empty_kitchen_dir, chosen_kitchen)
+    else:
+        chosen_kitchen = random.choice(nonempty_kitchens)
+        path = os.path.join(nonempty_kitchen_dir, chosen_kitchen)
+
+    image = Image.open(path)
+    if image.mode in ["RGBA", "P"]:
+        image = image.convert("RGB")
+    return image
+
+
 def clear_data():
     """
     Clear the data directory of all jpg files

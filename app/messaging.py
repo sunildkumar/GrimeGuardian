@@ -1,13 +1,15 @@
 import asyncio
-from thread_safe_state import StateModel
+import queue
 import discord
 import os
 
-DEFAULT_MESSAGE = "Alert! The sink is staging a dirty dishes rebellion. Time to restore order! Troops, to the kitchen!"
+
+DEFAULT_DIRTY_MESSAGE = "Alert! The sink is staging a dirty dishes rebellion. Time to restore order! Troops, to the kitchen!"
+DEFAULT_KITCHEN_HERO_MESSAGE = "Reinforcements have arrived! Our kitchen hero is here. Will they be able to quell the dirty dishes rebellion? Stay tuned!"
 
 
 class DiscordBot(discord.Client):
-    def __init__(self, notification_queue, stop_event, *args, **kwargs):
+    def __init__(self, notification_queue: queue.Queue, stop_event, *args, **kwargs):
         intents = discord.Intents.default()
         super().__init__(intents=intents, *args, **kwargs)
         self.notification_queue = notification_queue
@@ -26,8 +28,17 @@ class DiscordBot(discord.Client):
         channel = self.get_channel(int(self.channel_id))
         while not self.stop_event.is_set():
             if not self.notification_queue.empty():
-                state: StateModel = self.notification_queue.get()
+                # print the queue
+                state, notif = self.notification_queue.get()
+                print(state)
+                print(notif)
+                print("recieved state to notify on")
                 iq_id = state.sink_state_iq_id
                 fpath = f"../data/{iq_id}.jpg"
-                await channel.send(DEFAULT_MESSAGE, file=discord.File(fpath))
-            await asyncio.sleep(5)
+
+                try:
+                    await channel.send(DEFAULT_DIRTY_MESSAGE, file=discord.File(fpath))
+                except Exception as e:
+                    print(f"Error sending message: {e}")
+
+            await asyncio.sleep(1)

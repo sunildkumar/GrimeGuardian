@@ -1,9 +1,14 @@
-DEFAULT_MESSAGE = "Alert! The sink is staging a dirty dishes rebellion. Time to restore order! Troops, to the kitchen!"
 from datetime import datetime
 from queue import Queue
 import threading
 import time
 from thread_safe_state import StateModel, ThreadSafeState
+from enum import Enum
+
+
+class NotificationType(Enum):
+    SINK_DIRTY = "SINK_DIRTY"
+    KITCHEN_OCCUPIED = "KITCHEN_OCCUPIED"
 
 
 def publish_notifications(
@@ -15,32 +20,98 @@ def publish_notifications(
         if current_state == previous_state:
             time.sleep(3)
         else:
-            if should_send_notification(state):
-                notification_queue.put(state.get_state())
-                state.update_state(last_notification_timestamp=datetime.now())
+            notif = determine_notification(current_state)
+            if notif is not None:
+                print(f"Sending notification: {notif}")
+                notification_queue.put((state.get_state(), notif))
+
+                if notif == NotificationType.SINK_DIRTY:
+                    state.update_state(
+                        last_dirty_sink_notification_timestamp=datetime.now()
+                    )
+                elif notif == NotificationType.KITCHEN_OCCUPIED:
+                    state.update_state(
+                        last_occupied_kitchen_notification_timestamp=datetime.now()
+                    )
 
         previous_state = current_state
 
 
-def should_send_notification(state: ThreadSafeState) -> bool:
-    # TODO make these bigger for real use
-    MIN_SECONDS_SINCE_LAST_NOTIFICATION = 10
-    MIN_SECONDS_SINCE_SINK_DIRTY = 0.1
+def determine_notification(state: StateModel) -> NotificationType | None:
+    """
+    Determines if a notification should be sent based on the current state of the world, if neither notification should be sent, returns None
+    """
+    # Prioritize sending kitchen occupied notifications over dirty sink notifications
+    kitchen_occupied_notification = _should_send_kitchen_occupied_notification(state)
 
-    state_obj: StateModel = state.get_state()
-    time_since_last_notification = (
-        datetime.now() - state_obj.last_notification_timestamp
+    if kitchen_occupied_notification is not None:
+        return kitchen_occupied_notification
+
+    dirty_sink_notification = _should_send_dirty_sink_notification(state)
+
+    if dirty_sink_notification is not None:
+        return dirty_sink_notification
+
+    return None
+
+
+def _should_send_dirty_sink_notification(
+    state: StateModel,
+) -> NotificationType | None:
+    # block sending a dirty sink notification if we have sent one in the last MIN_SECONDS_SINCE_LAST_NOTIFICATION seconds
+    MIN_SECONDS_SINCE_LAST_DIRTY_SINK_NOTIFICATION = 10
+
+    # how long we are willing to tolerate the sink being dirty before we send a notification given that we haven't notified recently
+    MIN_SECONDS_SINCE_SINK_DIRTY = 1
+
+    # how long has it been since we sent a notification about the sink being dirty
+    if state.last_dirty_sink_notification_timestamp is None:
+        time_since_last_dirty_sink_notification = float("inf")
+    else:
+        time_since_last_dirty_sink_notification = (
+            datetime.now() - state.last_dirty_sink_notification_timestamp
+        ).total_seconds()
+
+    # how long has it been since the sink was last clean
+    time_since_sink_clean = (
+        datetime.now() - state.last_sink_clean_timestamp
     ).total_seconds()
 
-    time_since_sink_dirty = (
-        datetime.now() - state_obj.sink_state_timestamp
-    ).total_seconds()
-
-    # only send a notification if the sink is dirty and it has been at least MIN_SECONDS_SINCE_SINK_DIRTY seconds and it has been at least MIN_SECONDS_SINCE_LAST_NOTIFICATION seconds since the last notification
+    # only send a dirty sink notification if the sink is dirty and it has been at least MIN_SECONDS_SINCE_SINK_DIRTY seconds and it has been at least MIN_SECONDS_SINCE_LAST_NOTIFICATION seconds since the last notification
     if (
-        time_since_last_notification > MIN_SECONDS_SINCE_LAST_NOTIFICATION
-        and time_since_sink_dirty > MIN_SECONDS_SINCE_SINK_DIRTY
-        and state_obj.sink_state == "YES"
+        time_since_last_dirty_sink_notification
+        > MIN_SECONDS_SINCE_LAST_DIRTY_SINK_NOTIFICATION
+        and time_since_sink_clean > MIN_SECONDS_SINCE_SINK_DIRTY
+        and state.sink_state == "YES"
     ):
-        return True
-    return False
+        return NotificationType.SINK_DIRTY
+    return None
+
+
+def _should_send_kitchen_occupied_notification(
+    state: StateModel,
+) -> NotificationType | None:
+    # block sending a kitchen occupied notification if we have sent one in the last MIN_SECONDS_SINCE_LAST_KITCHEN_OCCUPIED_NOTIFICATION seconds
+    MIN_SECONDS_SINCE_LAST_KITCHEN_OCCUPIED_NOTIFICATION = 10
+
+    # how long has it been since we sent a notification about the kitchen being occupied
+    if state.last_occupied_kitchen_notification_timestamp is None:
+        time_since_last_kitchen_occupied_notification = float("inf")
+    else:
+        time_since_last_kitchen_occupied_notification = (
+            datetime.now() - state.last_occupied_kitchen_notification_timestamp
+        ).total_seconds()
+
+    # we should send a kitchen occupied notification if
+    # 1. the kitchen is occupied
+    # 2. the sink is dirty
+    # 3. it has been at least MIN_SECONDS_SINCE_LAST_KITCHEN_OCCUPIED_NOTIFICATION seconds since the last notification
+    # 4. the kitchen was occupied more recently than the sink was dirty
+    if (
+        time_since_last_kitchen_occupied_notification
+        > MIN_SECONDS_SINCE_LAST_KITCHEN_OCCUPIED_NOTIFICATION
+        and state.kitchen_state == "YES"
+        and state.sink_state == "YES"
+        and state.kitchen_state_timestamp >= state.sink_state_timestamp
+    ):
+        return NotificationType.KITCHEN_OCCUPIED

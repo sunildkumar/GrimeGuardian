@@ -5,8 +5,6 @@ import threading
 import time
 from thread_safe_state import StateModel, ThreadSafeState
 
-DEFAULT_MESSAGE = "Alert! The sink is staging a dirty dishes rebellion. Time to restore order! Troops, to the kitchen!"
-
 
 def publish_notifications(
     state: ThreadSafeState, notification_queue: Queue, stop_event: threading.Event
@@ -18,16 +16,16 @@ def publish_notifications(
             time.sleep(3)
         else:
             if should_send_notification(state):
-                notification_queue.put(DEFAULT_MESSAGE)
+                notification_queue.put(state.get_state())
                 state.update_state(last_notification_timestamp=datetime.now())
 
         previous_state = current_state
 
 
 def should_send_notification(state: ThreadSafeState) -> bool:
-    # TODO make these bigger for production
+    # TODO make these bigger for real use
     MIN_SECONDS_SINCE_LAST_NOTIFICATION = 10
-    MIN_SECONDS_SINCE_SINK_DIRTY = 5
+    MIN_SECONDS_SINCE_SINK_DIRTY = 0.1
 
     state_obj: StateModel = state.get_state()
     time_since_last_notification = (

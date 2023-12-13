@@ -36,6 +36,21 @@ def get_sink_image() -> Image:
     return image
 
 
+def clear_data():
+    """
+    Clear the data directory
+    """
+    for file in os.listdir("../data"):
+        os.remove(os.path.join("../data", file))
+
+
+def save_image(image: Image, query_id: str):
+    """
+    Save the image to disk using the image query id as the name of the file
+    """
+    image.save(f"../data/{query_id}.jpg")
+
+
 def make_sink_queries(query_queue: Queue, detector, stop_event: threading.Event):
     """
     This loop will produce queries asynchonously and puts them in the query_queue for later processing
@@ -48,5 +63,6 @@ def make_sink_queries(query_queue: Queue, detector, stop_event: threading.Event)
             query = gl.ask_async(detector=detector, image=image)
             submit_time = datetime.now()
             query_queue.put((query, submit_time))
+            save_image(image, query.id)
         except Exception as e:
             print(f"Error: {e}")

@@ -1,6 +1,9 @@
 import asyncio
+from thread_safe_state import StateModel
 import discord
 import os
+
+DEFAULT_MESSAGE = "Alert! The sink is staging a dirty dishes rebellion. Time to restore order! Troops, to the kitchen!"
 
 
 class DiscordBot(discord.Client):
@@ -22,9 +25,9 @@ class DiscordBot(discord.Client):
         await self.wait_until_ready()
         channel = self.get_channel(int(self.channel_id))
         while not self.stop_event.is_set():
-            print("in loop for messaging")
             if not self.notification_queue.empty():
-                message = self.notification_queue.get()
-                fpath = "/Users/sunilkumar/Documents/GrimeGuardian/data_scraping/dirty_sink/000001.jpg"
-                await channel.send(message, file=discord.File(fpath))
+                state: StateModel = self.notification_queue.get()
+                iq_id = state.sink_state_iq_id
+                fpath = f"../data/{iq_id}.jpg"
+                await channel.send(DEFAULT_MESSAGE, file=discord.File(fpath))
             await asyncio.sleep(5)

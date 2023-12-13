@@ -31,6 +31,7 @@ def update_sink_state(
                             state.update_state(
                                 sink_state=answer.result.label,
                                 sink_state_timestamp=timestamp,
+                                sink_state_iq_id=answer.id,
                             )
                         # if the answer is NO, then the sink is clean and we need to update the sink_state, sink_timestamp, and last_sink_clean_timestamp
                         elif answer.result.label == "NO":
@@ -38,9 +39,9 @@ def update_sink_state(
                                 sink_state=answer.result.label,
                                 sink_state_timestamp=timestamp,
                                 last_sink_clean_timestamp=timestamp,
+                                sink_state_iq_id=answer.id,
                             )
 
             except Exception as e:
                 print(f"Error: {e}")
                 raise e
-            print(f"current state: {state.get_state()}")

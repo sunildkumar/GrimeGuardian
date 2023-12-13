@@ -9,7 +9,7 @@ from update_state import update_sink_state
 from thread_safe_state import ThreadSafeState
 from process_queries import process_query_queue
 from groundlight import Groundlight
-from sink_queries import make_sink_queries
+from sink_queries import clear_data, make_sink_queries
 import os
 import queue
 from messaging import DiscordBot
@@ -39,6 +39,9 @@ def setup_detector(unique: bool = True):
 if __name__ == "__main__":
     if not os.getenv("GROUNDLIGHT_API_TOKEN"):
         raise EnvironmentError("GROUNDLIGHT_API_TOKEN not set in .env file")
+
+    # delete all data captured from previous runs
+    clear_data()
 
     dirty_sink_detector = setup_detector(unique=False)
 

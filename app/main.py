@@ -9,7 +9,7 @@ from update_state import update_sink_state
 from thread_safe_state import ThreadSafeState
 from process_queries import process_query_queue
 from groundlight import Groundlight
-from sink_queries import clear_data, make_sink_queries
+from app.make_queries import clear_data, make_sink_queries
 import os
 import queue
 from messaging import DiscordBot

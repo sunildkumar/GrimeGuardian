@@ -5,4 +5,5 @@ __pycache__/
 *.pyd
 .DS_Store
 app/.env
-data/*.jpg
+data/*
+!data/.gitkeep

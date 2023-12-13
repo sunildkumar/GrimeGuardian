@@ -10,6 +10,7 @@ class StateModel(BaseModel):
     )  # current state of the sink, YES means it is dirty, NO means it is clean
     sink_state_timestamp: datetime  # timestamp of when the last update to the sink state was made
     last_sink_clean_timestamp: datetime  # timestamp of when the sink was last clean (when the state was last set to NO)
+    last_notification_timestamp: datetime  # timestamp of when the last notification was sent
 
 
 class ThreadSafeState:
@@ -18,6 +19,7 @@ class ThreadSafeState:
             sink_state="NO",
             sink_state_timestamp=datetime.now(),
             last_sink_clean_timestamp=datetime.now(),
+            last_notification_timestamp=datetime.now(),
         )
         self.lock = threading.Lock()
 
@@ -26,7 +28,8 @@ class ThreadSafeState:
         *,
         sink_state: str | None = None,
         sink_state_timestamp: datetime | None = None,
-        last_sink_clean_timestamp: datetime | None = None
+        last_sink_clean_timestamp: datetime | None = None,
+        last_notification_timestamp: datetime | None = None,
     ):
         with self.lock:
             if sink_state is not None:
@@ -35,6 +38,8 @@ class ThreadSafeState:
                 self.state.sink_state_timestamp = sink_state_timestamp
             if last_sink_clean_timestamp is not None:
                 self.state.last_sink_clean_timestamp = last_sink_clean_timestamp
+            if last_notification_timestamp is not None:
+                self.state.last_notification_timestamp = last_notification_timestamp
 
     def get_state(self) -> StateModel:
         with self.lock:

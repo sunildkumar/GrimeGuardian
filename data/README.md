@@ -1,0 +1,1 @@
+The app will write images to this directory and clean up prior to starting. 

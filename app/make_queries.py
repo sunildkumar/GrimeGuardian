@@ -6,9 +6,52 @@ import random
 import threading
 from PIL import Image
 from groundlight import Groundlight
+import cv2
+import numpy as np
+import time
+
+SINK_CAMERA_INDEX = 0
+KITCHEN_CAMERA_INDEX = 4
+TIME_BETWEEN_QUERIES = 20
+
+def get_cam_image(webcam_index):
+    cap = cv2.VideoCapture(webcam_index)
+
+    if not cap.isOpened():
+        raise IOError(f"Cannot open webcam with webcam index={webcam_index}")
+
+    ret, frame = cap.read()
+    if ret:
+        # Convert the color from BGR to RGB
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
+        # Convert to PIL Image
+        pil_image = Image.fromarray(frame_rgb)
+        return pil_image
+    else:
+        raise Exception('failed to capture image from camera')
+    cap.release()
+
+    raise IOError('could not capture a webcam image')
 
 
-def get_sink_image() -> Image:
+def get_sink_image(debug=False)->Image: 
+
+    if debug: 
+        return _get_sink_image_debug()
+    
+    return get_cam_image(webcam_index=SINK_CAMERA_INDEX)
+
+def get_kitchen_image(debug=False)->Image:
+
+    if debug:
+        return _get_debug_image()
+    
+    return get_cam_image(webcam_index=KITCHEN_CAMERA_INDEX)
+
+
+
+def _get_sink_image_debug() -> Image:
     """
     returns an image of a a sink
     # TODO - replace with an image from a live feed when available
@@ -36,9 +79,9 @@ def get_sink_image() -> Image:
     return image
 
 
-def get_kitchen_image() -> Image:
+def _get_kitchen_image_debug() -> Image:
     """
-    returns an image of a kitchen
+    returns an image of a kitchen for debugging. Doesn't use a camera
     # TODO - replace with an image from a live feed when available
     """
 
@@ -94,6 +137,8 @@ def make_sink_queries(query_queue: Queue, detector, stop_event: threading.Event)
             save_image(image, query.id)
         except Exception as e:
             print(f"Error: {e}")
+        
+        time.sleep(TIME_BETWEEN_QUERIES)
 
 
 def make_kitchen_queries(query_queue: Queue, detector, stop_event: threading.Event):
@@ -111,3 +156,26 @@ def make_kitchen_queries(query_queue: Queue, detector, stop_event: threading.Eve
             save_image(image, query.id)
         except Exception as e:
             print(f"Error: {e}")
+        
+        time.sleep(TIME_BETWEEN_QUERIES)
+
+
+
+def capture_and_save_images_from_all_cameras():
+    '''
+    debugging function to determine which indexes cameras correspond to
+    '''
+    max_camera_index = 10  # Maximum number of cameras to check
+    for i in range(max_camera_index):
+        try:
+            cap = cv2.VideoCapture(i)
+            if cap.isOpened():
+                ret, frame = cap.read()
+                if ret:
+                    cv2.imwrite(f'camera_{i}_image.jpg', frame)
+                cap.release()
+            
+        except:
+            print(f'failed to take a picture on camera index {i}')
+
+

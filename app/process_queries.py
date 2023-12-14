@@ -52,7 +52,6 @@ def remove_expired_queries(query_storage):
             new_query_storage.append(query_storage[i])
         else:
             expired_queries += 1
-            print(query_storage[i])
     return new_query_storage, expired_queries
 
 

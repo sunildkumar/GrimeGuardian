@@ -15,15 +15,12 @@ import time
 KITCHEN_CAMERA_PATH = '/dev/video0'
 SINK_CAMERA_PATH = '/dev/video4'
 
-TIME_BETWEEN_QUERIES = 1
+TIME_BETWEEN_QUERIES = 10
 
-def get_cam_image(webcam_path):
-    cap = cv2.VideoCapture(webcam_path)
+def get_cam_image(cap):
     try:
-        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
-
         if not cap.isOpened():
-            raise IOError(f"Cannot open webcam with webcam index={webcam_path}")
+            raise IOError(f"Cannot open webcam")
 
         ret, frame = cap.read()
 
@@ -35,10 +32,10 @@ def get_cam_image(webcam_path):
             pil_image = Image.fromarray(frame_rgb)
             return pil_image
         else:
-            raise Exception('failed to capture image from camera')
-
-    finally:
-        cap.release()
+            print('failed to capture image from camera')
+            return None
+    except Exception as e:
+        print(f"Error: {e}")
 
 
 def get_sink_image(debug=False)->Image: 
@@ -133,18 +130,23 @@ def make_sink_queries(query_queue: Queue, detector, stop_event: threading.Event)
     This loop will produce queries of the sink asynchonously and puts them in the query_queue for later processing
     """
     gl = Groundlight()
-
-    while not stop_event.is_set():
-        try:
-            image = get_sink_image()
-            query = gl.ask_async(detector=detector, image=image)
-            submit_time = datetime.now()
-            query_queue.put((query, submit_time))
-            save_image(image, query.id)
-        except Exception as e:
-            print(f"Error: {e}")
-        
-        time.sleep(TIME_BETWEEN_QUERIES)
+    cap = cv2.VideoCapture(SINK_CAMERA_PATH)
+    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
+    try:
+        while not stop_event.is_set():
+            try:
+                image = get_cam_image(cap)
+                if image is not None:
+                    query = gl.ask_async(detector=detector, image=image)
+                    submit_time = datetime.now()
+                    query_queue.put((query, submit_time))
+                    save_image(image, query.id)
+            except Exception as e:
+                print(f"Error: {e}")
+            
+            time.sleep(TIME_BETWEEN_QUERIES)
+    finally:
+        cap.release()
 
 
 def make_kitchen_queries(query_queue: Queue, detector, stop_event: threading.Event):
@@ -152,19 +154,23 @@ def make_kitchen_queries(query_queue: Queue, detector, stop_event: threading.Eve
     This loop will produce queries of the kitchen asynchonously and puts them in the query_queue for later processing
     """
     gl = Groundlight()
-
-    while not stop_event.is_set():
-        try:
-            image = get_kitchen_image()
-            query = gl.ask_async(detector=detector, image=image)
-            submit_time = datetime.now()
-            query_queue.put((query, submit_time))
-            save_image(image, query.id)
-        except Exception as e:
-            print(f"Error: {e}")
-        
-        time.sleep(TIME_BETWEEN_QUERIES)
-
+    cap = cv2.VideoCapture(KITCHEN_CAMERA_PATH)
+    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
+    try:
+        while not stop_event.is_set():
+            try:
+                image = get_cam_image(cap)
+                if image is not None:
+                    query = gl.ask_async(detector=detector, image=image)
+                    submit_time = datetime.now()
+                    query_queue.put((query, submit_time))
+                    save_image(image, query.id)
+            except Exception as e:
+                print(f"Error: {e}")
+            
+            time.sleep(TIME_BETWEEN_QUERIES)
+    finally:
+        cap.release()
 
 
 def capture_and_save_images_from_all_cameras():

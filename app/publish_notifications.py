@@ -76,19 +76,18 @@ def _should_send_dirty_sink_notification(
             datetime.now() - state.last_dirty_sink_notification_timestamp
         ).total_seconds()
 
-    # how long has it been since the sink was last clean
-    time_since_sink_clean = (
+    # how long has the sink been dirty
+    time_sink_dirty = (
         datetime.now() - state.last_sink_clean_timestamp
-    ).total_seconds()
+    ).total_seconds() if state.sink_state == "YES" else 0
 
-    print(f'{time_since_sink_clean=}, {time_since_last_dirty_sink_notification=}')
+    print(f'{time_sink_dirty=}, {time_since_last_dirty_sink_notification=}')
 
     # only send a dirty sink notification if the sink is dirty and it has been at least MIN_SECONDS_SINCE_SINK_DIRTY seconds and it has been at least MIN_SECONDS_SINCE_LAST_NOTIFICATION seconds since the last notification
     if (
         time_since_last_dirty_sink_notification
         > MIN_SECONDS_SINCE_LAST_DIRTY_SINK_NOTIFICATION
-        and time_since_sink_clean > MIN_SECONDS_SINCE_SINK_DIRTY
-        and state.sink_state == "YES"
+        and time_sink_dirty > MIN_SECONDS_SINCE_SINK_DIRTY
     ):
         return NotificationType.SINK_DIRTY
     return None

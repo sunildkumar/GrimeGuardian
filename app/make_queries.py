@@ -12,7 +12,7 @@ import time
 
 SINK_CAMERA_INDEX = 0
 KITCHEN_CAMERA_INDEX = 4
-TIME_BETWEEN_QUERIES = 20
+TIME_BETWEEN_QUERIES = 30
 
 def get_cam_image(webcam_index):
     cap = cv2.VideoCapture(webcam_index)
@@ -138,7 +138,7 @@ def make_sink_queries(query_queue: Queue, detector, stop_event: threading.Event)
         except Exception as e:
             print(f"Error: {e}")
         
-        time.sleep(TIME_BETWEEN_QUERIES)
+        #time.sleep(TIME_BETWEEN_QUERIES)
 
 
 def make_kitchen_queries(query_queue: Queue, detector, stop_event: threading.Event):
@@ -157,7 +157,7 @@ def make_kitchen_queries(query_queue: Queue, detector, stop_event: threading.Eve
         except Exception as e:
             print(f"Error: {e}")
         
-        time.sleep(TIME_BETWEEN_QUERIES)
+        #time.sleep(TIME_BETWEEN_QUERIES)
 
 
 

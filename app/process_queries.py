@@ -52,6 +52,7 @@ def remove_expired_queries(query_storage):
             new_query_storage.append(query_storage[i])
         else:
             expired_queries += 1
+            print(query_storage[i])
     return new_query_storage, expired_queries
 
 
@@ -86,6 +87,6 @@ def process_query_queue(
                 print(f"Error: {e}")
                 raise e
 
-            # print(
-            #     f"Total queries: {total_queries}, Total answered: {total_answered}, Total expired: {total_expired}"
-            # )
+            print(
+                f"Total queries: {total_queries}, Total answered: {total_answered}, Total expired: {total_expired}"
+            )

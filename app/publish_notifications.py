@@ -43,6 +43,8 @@ def determine_notification(state: StateModel) -> NotificationType | None:
     """
     # Prioritize sending kitchen occupied notifications over dirty sink notifications
     kitchen_occupied_notification = _should_send_kitchen_occupied_notification(state)
+    #print(state)
+    print(f'kitchen notif: {kitchen_occupied_notification}')
 
     if kitchen_occupied_notification is not None:
         return kitchen_occupied_notification
@@ -52,6 +54,8 @@ def determine_notification(state: StateModel) -> NotificationType | None:
     if dirty_sink_notification is not None:
         return dirty_sink_notification
 
+    print(f'sink notif: {dirty_sink_notification}')
+
     return None
 
 
@@ -59,10 +63,10 @@ def _should_send_dirty_sink_notification(
     state: StateModel,
 ) -> NotificationType | None:
     # block sending a dirty sink notification if we have sent one in the last MIN_SECONDS_SINCE_LAST_NOTIFICATION seconds
-    MIN_SECONDS_SINCE_LAST_DIRTY_SINK_NOTIFICATION = 10
+    MIN_SECONDS_SINCE_LAST_DIRTY_SINK_NOTIFICATION = 300
 
     # how long we are willing to tolerate the sink being dirty before we send a notification given that we haven't notified recently
-    MIN_SECONDS_SINCE_SINK_DIRTY = 1
+    MIN_SECONDS_SINCE_SINK_DIRTY = 60
 
     # how long has it been since we sent a notification about the sink being dirty
     if state.last_dirty_sink_notification_timestamp is None:
@@ -76,6 +80,8 @@ def _should_send_dirty_sink_notification(
     time_since_sink_clean = (
         datetime.now() - state.last_sink_clean_timestamp
     ).total_seconds()
+
+    print(f'{time_since_sink_clean=}, {time_since_last_dirty_sink_notification=}')
 
     # only send a dirty sink notification if the sink is dirty and it has been at least MIN_SECONDS_SINCE_SINK_DIRTY seconds and it has been at least MIN_SECONDS_SINCE_LAST_NOTIFICATION seconds since the last notification
     if (
@@ -92,7 +98,7 @@ def _should_send_kitchen_occupied_notification(
     state: StateModel,
 ) -> NotificationType | None:
     # block sending a kitchen occupied notification if we have sent one in the last MIN_SECONDS_SINCE_LAST_KITCHEN_OCCUPIED_NOTIFICATION seconds
-    MIN_SECONDS_SINCE_LAST_KITCHEN_OCCUPIED_NOTIFICATION = 10
+    MIN_SECONDS_SINCE_LAST_KITCHEN_OCCUPIED_NOTIFICATION = 120
 
     # how long has it been since we sent a notification about the kitchen being occupied
     if state.last_occupied_kitchen_notification_timestamp is None:
@@ -102,6 +108,7 @@ def _should_send_kitchen_occupied_notification(
             datetime.now() - state.last_occupied_kitchen_notification_timestamp
         ).total_seconds()
 
+    print(f'{state.sink_state=}, {state.kitchen_state=}, {state.kitchen_state_timestamp > state.sink_state_timestamp}, {time_since_last_kitchen_occupied_notification=} ')
     # we should send a kitchen occupied notification if
     # 1. the kitchen is occupied
     # 2. the sink is dirty

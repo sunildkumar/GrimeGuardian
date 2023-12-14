@@ -10,29 +10,35 @@ import cv2
 import numpy as np
 import time
 
-SINK_CAMERA_INDEX = 0
-KITCHEN_CAMERA_INDEX = 4
-TIME_BETWEEN_QUERIES = 30
 
-def get_cam_image(webcam_index):
-    cap = cv2.VideoCapture(webcam_index)
+# I used `v4l2-ctl --list-devices` to figure out the paths to the cameras. This should be stable across reboots.
+KITCHEN_CAMERA_PATH = '/dev/video0'
+SINK_CAMERA_PATH = '/dev/video4'
 
-    if not cap.isOpened():
-        raise IOError(f"Cannot open webcam with webcam index={webcam_index}")
+TIME_BETWEEN_QUERIES = 1
 
-    ret, frame = cap.read()
-    if ret:
-        # Convert the color from BGR to RGB
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        
-        # Convert to PIL Image
-        pil_image = Image.fromarray(frame_rgb)
-        return pil_image
-    else:
-        raise Exception('failed to capture image from camera')
-    cap.release()
+def get_cam_image(webcam_path):
+    cap = cv2.VideoCapture(webcam_path)
+    try:
+        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
 
-    raise IOError('could not capture a webcam image')
+        if not cap.isOpened():
+            raise IOError(f"Cannot open webcam with webcam index={webcam_path}")
+
+        ret, frame = cap.read()
+
+        if ret:
+            # Convert the color from BGR to RGB
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            
+            # Convert to PIL Image
+            pil_image = Image.fromarray(frame_rgb)
+            return pil_image
+        else:
+            raise Exception('failed to capture image from camera')
+
+    finally:
+        cap.release()
 
 
 def get_sink_image(debug=False)->Image: 
@@ -40,14 +46,14 @@ def get_sink_image(debug=False)->Image:
     if debug: 
         return _get_sink_image_debug()
     
-    return get_cam_image(webcam_index=SINK_CAMERA_INDEX)
+    return get_cam_image(SINK_CAMERA_PATH)
 
 def get_kitchen_image(debug=False)->Image:
 
     if debug:
         return _get_debug_image()
     
-    return get_cam_image(webcam_index=KITCHEN_CAMERA_INDEX)
+    return get_cam_image(KITCHEN_CAMERA_PATH)
 
 
 
@@ -138,7 +144,7 @@ def make_sink_queries(query_queue: Queue, detector, stop_event: threading.Event)
         except Exception as e:
             print(f"Error: {e}")
         
-        #time.sleep(TIME_BETWEEN_QUERIES)
+        time.sleep(TIME_BETWEEN_QUERIES)
 
 
 def make_kitchen_queries(query_queue: Queue, detector, stop_event: threading.Event):
@@ -157,7 +163,7 @@ def make_kitchen_queries(query_queue: Queue, detector, stop_event: threading.Eve
         except Exception as e:
             print(f"Error: {e}")
         
-        #time.sleep(TIME_BETWEEN_QUERIES)
+        time.sleep(TIME_BETWEEN_QUERIES)
 
 
 

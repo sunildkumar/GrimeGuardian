@@ -1,7 +1,9 @@
 # Grime Guardian
-Python application deployed on Raspberry Pi to automatically detect dirty dishes in the office sink and celebrates the person who cleans them up. It uses Groundlight to power the CV aspects of the project.
+Python application deployed on Raspberry Pi to automatically detect dirty dishes in the office sink and celebrates the person who cleans them up. It uses Groundlight to power the CV aspects of the project. 
 
-Uses microservices architechture to show how to use Groundlight at scale on problems with complex state.
+Uses microservices architecture to show how to use Groundlight at scale on problems with complex state.
+
+See my [blog post](https://code.groundlight.ai/python-sdk/blog/grime-guardian) about this project to learn more.
 # Phyical Set up
 I installed a Raspberry Pi 4 in the kitchen of our office with two cameras - one pointing at the sink and one that could see anyone in the kitchen.
 | | |
